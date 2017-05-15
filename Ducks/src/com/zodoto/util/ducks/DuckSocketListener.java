@@ -3,10 +3,18 @@ package com.zodoto.util.ducks;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+/**
+ * Listens for a socket connection, which will have a request for a set of keys.
+ * Spawns a DuckSocketThread to accept the request and return the response
+ * 
+ * @author Pete Guard
+ */
 public class DuckSocketListener {
 
 	private DuckConfiguration duckConfiguration;
 	private DuckControl duckControl;
+	private DuckSecurity duckSecurity;
+	private DuckLog duckLog;
 	private int port;
 	private boolean live;
 	
@@ -30,6 +38,26 @@ public class DuckSocketListener {
 		this.duckControl = duckControl;
 		return this;
 	}
+	
+	/**
+	 * Sets the object to encrypt and decrypt objects
+	 * @param duckSecurity Encrypt decrypt object
+	 * @return This object
+	 */
+	public DuckSocketListener setDuckSecurity(DuckSecurity duckSecurity)	{
+		this.duckSecurity = duckSecurity;
+		return this;
+	}
+	
+	/**
+	 * Sets the logger
+	 * @param duckLog Logger
+	 * @return This object
+	 */
+	public DuckSocketListener setDuckLog(DuckLog duckLog)	{
+		this.duckLog = duckLog;
+		return this;
+	}
 
 	/**
 	 * Get the listener ready to accept requests
@@ -41,20 +69,36 @@ public class DuckSocketListener {
 		port = duckConfiguration.getListenPort();
 		live = true;
 		
+		Runtime.getRuntime().addShutdownHook(new Thread()	{
+			public void run()	{
+				live = false;
+			}
+		});
+		
 		return this;
 	}
 	
+	/**
+	 * Start and run the listener
+	 * @throws Exception
+	 */
 	public void go() throws Exception	{
 		
-		//	TODO: Log this
+		//	Listen for connections
+		duckLog.log("Listening on port: " + port);
 		ServerSocket serverSocket = new ServerSocket(port);
 
-		//	TODO - how do I switch off live?
         while (live) {
         	Socket socket = serverSocket.accept();
-        	new DuckSocketThread().setDuckControl(duckControl).setSocket(socket).start();
+        	new DuckSocketThread()
+        		.setDuckControl(duckControl)
+        		.setSocket(socket)
+        		.setDuckSecurity(duckSecurity)
+        		.setDuckLog(duckLog)
+        		.start();
         }
         
+        //	close port
         serverSocket.close();
 	}
 }

@@ -5,6 +5,8 @@ import java.util.List;
 /**
  * 
  * Persists Duck Map to permanent storage 
+ * 
+ * @author Pete Guard
  *
  */
 public interface DuckPersist {

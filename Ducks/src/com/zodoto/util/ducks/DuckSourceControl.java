@@ -3,15 +3,18 @@ package com.zodoto.util.ducks;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Controller for the request to the source
+ * 
+ * @author Pete Guard
+ *
+ */
 public class DuckSourceControl implements DuckSource {
 	
 	private DuckConfiguration duckConfiguration;
-
 	private DuckSourceRemote duckSourceRemote;
-	
 	private Map<String,DuckRequest> requests = new HashMap<>();
 
-	
 	@Override
 	public DuckSource setDuckConfiguration(DuckConfiguration duckConfiguration) {
 		this.duckConfiguration = duckConfiguration;
@@ -104,7 +107,8 @@ public class DuckSourceControl implements DuckSource {
 			request = new DuckRequest()
 					.setName(name)
 					.setDuckControl(duckControl)
-					.setRequestedSize(duckConfiguration.getRequestSize());
+					.setRequestedSize(duckConfiguration.getRequestSize())
+					.setIdentity(duckConfiguration.getIdentity());
 			
 			//	Add the request to the in process map
 			requests.put(name, request);

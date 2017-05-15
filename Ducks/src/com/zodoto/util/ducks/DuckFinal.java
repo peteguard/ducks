@@ -5,8 +5,11 @@ import java.util.Map;
 
 
 /**
- * No thread safe duck to be used
- * @author peteguard
+ * Non-thread safe duck.  In large containers with high volumes you don't want the overhead for each request
+ * This class maintains a set of keys for use by a single thread.  The container would have a Local Duck, which
+ * services the final Ducks.
+ * 
+ * @author Pete Guard
  *
  */
 public class DuckFinal {

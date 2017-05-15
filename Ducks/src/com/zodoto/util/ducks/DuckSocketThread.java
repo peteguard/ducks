@@ -5,60 +5,116 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+/**
+ * Receives a single request, contacts the local control for the next set of keys, and returns them
+ *
+ * @author Pete Guard
+ */
 public class DuckSocketThread extends Thread	{
 	
 	private DuckControl duckControl;
+	private DuckSecurity duckSecurity;
+	private DuckLog duckLog;
 	private Socket socket;
 	
+	/**
+	 * Set the duckControl that responds to key requests
+	 * @param duckControl
+	 * @return This object
+	 */
 	public DuckSocketThread setDuckControl(DuckControl duckControl)	{
 		this.duckControl = duckControl;
 		return this;
 	}
+	
+	/**
+	 * Sets the object to encrypt and decrypt objects
+	 * @param duckSecurity Encrypt decrypt object
+	 * @return This object
+	 */
+	public DuckSocketThread setDuckSecurity(DuckSecurity duckSecurity)	{
+		this.duckSecurity = duckSecurity;
+		return this;
+	}
+	
+	/**
+	 * Sets the logger
+	 * @param duckLog Logger
+	 * @return This object
+	 */
+	public DuckSocketThread setDuckLog(DuckLog duckLog)	{
+		this.duckLog = duckLog;
+		return this;
+	}
 
+	/**
+	 * Set the socket that contains the request
+	 * @param socket
+	 * @return
+	 */
 	public DuckSocketThread setSocket(Socket socket)	{
 		this.socket = socket;
 		return this;
 	}
 
+	/**
+	 * Run by the thread to marshal the request from the socket to the control and the response back to the socket
+	 */
+	@Override
 	public void run()	{
-		BufferedReader in = null;
-		PrintWriter out = null;
 		try	{
-			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			out = new PrintWriter(socket.getOutputStream(), true);
-		
-			String request = in.readLine();
-			String response = execute(request);
-			out.println(response);
-        	socket.close();
+			DuckRequest duckRequest = acceptRequest();
+			DuckRange duckRange = duckControl.get(duckRequest.getName(), duckRequest.getRequestedSize());
+			sendResponse(duckRange, duckRequest.getIdentity());
+			socket.close();
 		}
 		catch(Exception e)	{
-			if(out != null)	{
-				out.println("FAILURE:-1:-1");
-			}
-			System.out.println("Disconnection");
-			try	{
-				socket.close();
-			}
-			catch(Exception f)	{
-				
-			}
+			duckLog.log(e.getLocalizedMessage(), e);
 		}
 	}
 
-	private String execute(String request) throws Exception 	{
+	
+	/**
+	 * Accepts the request for a key range
+	 * @return Request
+	 * @throws Exception Error
+	 */
+	private DuckRequest acceptRequest() throws Exception	{
+		String encryptedRequest = null;
+		BufferedReader in = null;
+		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		encryptedRequest = in.readLine();
 		
-		if(request == null)	{
-			return "FAILURE:-1:-1";
+		String request = duckSecurity.decryptRequest(encryptedRequest);	
+		String[] array = request.split(DuckConstants.DIVIDER);
+		DuckRequest duckRequest = new DuckRequest().setSuccess(false);
+		try	{
+			if(array.length == 3)	{
+				duckRequest.setIdentity(array[0]);
+				duckRequest.setName(array[1]);
+				duckRequest.setRequestedSize(Integer.parseInt(array[2]));
+			}
+ 		}
+		catch(Exception e)	{
 		}
-		String[] array = request.split(":");
-		String name = array[0];
-		int maximumSize = Integer.parseInt(array[1]);
-		DuckRange duckRange = duckControl.get(name, maximumSize);
-		String response = duckRange.getStatus() + ":" + duckRange.getStartKey() + ":" + duckRange.getEndKey();
 		
-		return response;
+		duckRequest.setComplete(true);
+		duckLog.logReceivedRequest(duckRequest);
+		return duckRequest;
 	}
-}
 
+	/**
+	 * Send response back to the requesting duck
+	 * @param duckRange New set of keys
+	 * @throws Exception error
+	 */
+	private void sendResponse(DuckRange duckRange, String identity) throws Exception	{
+		
+		PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+		String response = duckRange.getStatus() + DuckConstants.DIVIDER + duckRange.getStartKey() + DuckConstants.DIVIDER + duckRange.getEndKey();
+		String encryptedResponse = duckSecurity.encryptResponse(response, identity);
+		out.println(encryptedResponse);
+		duckLog.logSentRange(duckRange);
+	}
+}	
 

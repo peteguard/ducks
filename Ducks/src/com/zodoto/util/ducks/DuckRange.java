@@ -7,6 +7,8 @@ package com.zodoto.util.ducks;
  * The time to reply exceeds a configured setting then the requester 
  * times out.  It will still wait for the response so the caller
  * may choose to make additional requests.
+ * 
+ * @author Pete Guard
  *
  */
 public class DuckRange {

@@ -2,7 +2,9 @@ package com.zodoto.util.ducks;
 
 /**
  * 
- * Used by a Duck Controller to contact a source Duck for more 
+ * Used by a Duck Controller to contact a source Duck for another key range 
+ * 
+ * @author Pete Guard
  *
  */
 public interface DuckSource  {

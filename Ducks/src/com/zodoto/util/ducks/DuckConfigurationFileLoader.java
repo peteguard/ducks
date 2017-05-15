@@ -10,7 +10,9 @@ import java.util.stream.Stream;
 
 /**
  * 
- * Loads the configuration from the given file name
+ * Loads the configuration from the file
+ * 
+ * @author Pete Guard
  *
  */
 public class DuckConfigurationFileLoader {
@@ -18,7 +20,7 @@ public class DuckConfigurationFileLoader {
 	/**
 	 * Loads the configuration from the file by the given name
 	 * @param configurationFileName
-	 * @return
+	 * @return Duck configuration object
 	 * @throws Exception
 	 */
 	public DuckConfiguration load(String configurationFileName)	throws Exception	{
@@ -34,7 +36,7 @@ public class DuckConfigurationFileLoader {
 	/**
 	 * Creates the configuration from the array
 	 * @param array
-	 * @return
+	 * @return Duck configuration object
 	 * @throws Exception
 	 */
 	public DuckConfiguration create(String[] array) throws Exception	{
@@ -50,7 +52,7 @@ public class DuckConfigurationFileLoader {
 	/**
 	 * Extract a map of key value pairs from a file
 	 * @param configurationFileName
-	 * @return
+	 * @return Map of configuration key value pairs
 	 * @throws Exception
 	 */
 	private Map<String,String> loadFile(String configurationFileName)	throws Exception	{
@@ -85,7 +87,7 @@ public class DuckConfigurationFileLoader {
 	/**
 	 * Extract a confguration from an array
 	 * @param array
-	 * @return
+	 * @return Map of configuration key value pairs
 	 * @throws Exception
 	 */
 	private Map<String,String> loadArray(String[] array) throws Exception	{
@@ -116,7 +118,7 @@ public class DuckConfigurationFileLoader {
 			return;
 		}
 
-		//	find the end of the key, may be ':', '=', or whitespace
+		//	find the end of the key, may be whitespace or a separator
 		int index = 0;
 		while(index < row.length())	{
 			char ch = row.charAt(index);
@@ -135,7 +137,7 @@ public class DuckConfigurationFileLoader {
 	/**
 	 * Convert the key value map into a configuration object
 	 * @param temporary
-	 * @return
+	 * @return Duck configuration object
 	 * @throws Exception
 	 */
 	private DuckConfiguration createConfiguration(Map<String,String> temporary) throws Exception	{
@@ -146,6 +148,7 @@ public class DuckConfigurationFileLoader {
 			String value = temporary.get(key);
 		
 			switch(key.toLowerCase())	{
+			case "identity":		duckConfiguration.setIdentity(value);										break;
 			case "ducktype":		duckConfiguration.setDuckType(getDuckType(value));							break;
 			case "requestsize":		duckConfiguration.setRequestSize(stringToInt(value, "RequestSize"));		break;
 			case "responsesize":	duckConfiguration.setResponseSize(stringToInt(value, "ResponseSize"));		break;
@@ -170,7 +173,7 @@ public class DuckConfigurationFileLoader {
 	/**
 	 * Extracts the type of duck
 	 * @param input
-	 * @return
+	 * @return Type of Duck
 	 * @throws Exception
 	 */
 	private DuckType getDuckType(String input) throws Exception	{
@@ -187,7 +190,7 @@ public class DuckConfigurationFileLoader {
 	 * Extracts an integer value, which must be a non-negative number
 	 * @param in
 	 * @param name
-	 * @return
+	 * @return Numeric value
 	 * @throws Exception
 	 */
 	private int stringToInt(String in, String name) throws Exception	{
@@ -202,6 +205,13 @@ public class DuckConfigurationFileLoader {
 		throw new Exception("Invalid value [" + in + "] for [" + name + "], must be a non-negative integer");
 	}
 	
+	/**
+	 * Extract a boolean value from a text representation
+	 * @param in
+	 * @param name
+	 * @return Boolean value
+	 * @throws Exception
+	 */
 	private boolean StringToBoolean(String in, String name) throws Exception	{
 		in = in.toLowerCase();
 		switch(in)	{
@@ -226,41 +236,50 @@ public class DuckConfigurationFileLoader {
 	 */
 	private void validateDuckConfiguration(DuckConfiguration duckConfiguration) throws Exception	{
 
+		
+		switch(duckConfiguration.getDuckType()){
+		case SUPER:
+			notZero(duckConfiguration.getListenPort(), "Super duck requires a listen port");
+			notZero(duckConfiguration.getPersistFileName().length(), "Super duck requires a persistence file");
+			break;
+		case RELAY:
+			validateRequestParameters(duckConfiguration);
+			notZero(duckConfiguration.getListenPort(), "Relay duck requires a listen port");
+			notZero(duckConfiguration.getSourceURL().length(), "Relay duck requires a source URL");
+			notZero(duckConfiguration.getSourcePort(), "Relay duck requires a source port");
+			break;
+		case LOCAL:
+			validateRequestParameters(duckConfiguration);
+			notZero(duckConfiguration.getSourceURL().length(), "Relay duck requires a source URL");
+			notZero(duckConfiguration.getSourcePort(), "Relay duck requires a source port");
+			break;
+		case FINAL:
+		}
+	}
+	
+	/**
+	 * Apply validations to parameters required by ducks that get keys from other ducks
+	 * @param duckConfiguration
+	 * @throws Exception
+	 */
+	private void validateRequestParameters(DuckConfiguration duckConfiguration) throws Exception	{
 		if(duckConfiguration.getResponseSize() >= duckConfiguration.getRequestSize())	{
 			throw new Exception("ResponseSize=" + duckConfiguration.getResponseSize() + " must be less than RequestSize=" + duckConfiguration.getRequestSize());
 		}
 		if(duckConfiguration.getWatermark() >= duckConfiguration.getRequestSize())	{
 			throw new Exception("Watermark=" + duckConfiguration.getWatermark() + " must be less than RequestSize=" + duckConfiguration.getRequestSize());
 		}
-		switch(duckConfiguration.getDuckType()){
-		case SUPER:
-			if(duckConfiguration.getListenPort() == 0)	{
-				throw new Exception("Super duck requires a listen port");
-			}
-			if(duckConfiguration.getPersistFileName().length() == 0)	{
-				throw new Exception("Super duck requires a persistence file");
-			}
-			break;
-		case RELAY:
-			if(duckConfiguration.getListenPort() == 0)	{
-				throw new Exception("Relay duck requires a listen port");
-			}
-			if(duckConfiguration.getSourceURL().length() == 0)	{
-				throw new Exception("Relay duck requires a source URL");
-			}
-			if(duckConfiguration.getSourcePort() == 0)	{
-				throw new Exception("Relay duck requires a source port");
-			}
-			break;
-		case LOCAL:
-			if(duckConfiguration.getSourceURL().length() == 0)	{
-				throw new Exception("Relay duck requires a source URL");
-			}
-			if(duckConfiguration.getSourcePort() == 0)	{
-				throw new Exception("Relay duck requires a source port");
-			}
-			break;
-		case FINAL:
+	}
+	
+	/**
+	 * Throws an exception if the value is zero
+	 * @param value
+	 * @param message
+	 * @throws Exception
+	 */
+	private void notZero(int value, String message) throws Exception	{
+		if(value == 0)	{
+			throw new Exception(message);
 		}
 	}
 	
@@ -270,7 +289,23 @@ public class DuckConfigurationFileLoader {
 	 */
 	private void logDuckConfiguration(DuckConfiguration duckConfiguration)	{
 		
-		//	TODO: for now
-		System.out.println(duckConfiguration);
+		if(duckConfiguration.isSilent())	{
+			return;
+		}
+		
+		System.out.println("identity: " + duckConfiguration.getIdentity());
+		System.out.println("ducktype: " + duckConfiguration.getDuckType());
+		System.out.println("requestsize: " + duckConfiguration.getRequestSize());
+		System.out.println("responsesize: " + duckConfiguration.getResponseSize());
+		System.out.println("watermark: " + duckConfiguration.getWatermark());
+		System.out.println("waitmillis: " + duckConfiguration.getWaitMillis());
+		System.out.println("waitcount: " + duckConfiguration.getWaitCount());
+		System.out.println("retries: " + duckConfiguration.getRetries());
+		System.out.println("persistfilename: " + duckConfiguration.getPersistFileName());
+		System.out.println("sourceurl: " + duckConfiguration.getSourceURL());
+		System.out.println("sourceport: " + duckConfiguration.getSourcePort());
+		System.out.println("listenport: " + duckConfiguration.getListenPort());
+		System.out.println("logfoldername: " + duckConfiguration.getLogFolderName());
+		System.out.println("silent: " + duckConfiguration.isSilent());
 	}
 }

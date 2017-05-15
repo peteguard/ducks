@@ -2,7 +2,9 @@ package com.zodoto.util.ducks;
 
 /**
  * 
- * Container for a named key, keeps the current range, and an ondeck range
+ * Container for a named key, keeps the current range, and an on-deck range
+ * 
+ * @author Pete Guard
  *
  */
 public class DuckEgg {
@@ -35,8 +37,8 @@ public class DuckEgg {
 		name = duckData.getName();
 		nextKey = duckData.getNextKey();
 		endKey = duckData.getEndKey();
-		onDeckNextKey = duckData.getNextStartKey();
-		onDeckEndKey = duckData.getNextEndKey();
+		onDeckNextKey = duckData.getOnDeckStartKey();
+		onDeckEndKey = duckData.getOnDeckEndKey();
 		requested = false;
 	}
 
@@ -71,8 +73,8 @@ public class DuckEgg {
 					.setName(name)
 					.setNextKey(nextKey)
 					.setEndKey(endKey)
-					.setNextStartKey(onDeckNextKey)
-					.setNextEndKey(onDeckEndKey);
+					.setOnDeckStartKey(onDeckNextKey)
+					.setOnDeckEndKey(onDeckEndKey);
 		}
 	}
 

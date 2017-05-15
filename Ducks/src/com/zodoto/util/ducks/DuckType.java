@@ -7,6 +7,9 @@ package com.zodoto.util.ducks;
  * LOCAL,	returns key range, thread safe, by default no persistence, gets keys from relay or super
  * RELAY,	returns key range, stand alone, listens on port, has persistence, gets keys from relay or super
  * SUPER	returns key range, stand alone, listens on port, must have persistence, generates keys locally, only one
+ * 
+ * @author Pete Guard
+ *
  */
 public enum DuckType {
 	

@@ -3,6 +3,8 @@ package com.zodoto.util.ducks;
 /**
  * 
  * Source to be used by the Super Duck.  It doesn't query another Duck, instead it returns the entire set.
+ * 
+ * @author Pete Guard
  *
  */
 public class DuckSourceMaster implements DuckSource {

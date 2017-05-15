@@ -5,20 +5,26 @@ import java.util.Map;
 
 /**
  * 
- * Core of a duck
+ * This class is the core of the duck.  It controls the supply of keys,
+ * provides keys when requested and more keys from the source as needed.
+ * 
+ * @author Pete Guard
  *
  */
 public class DuckControlService implements DuckControl {
 
 	private DuckConfiguration duckConfiguration;
-	
 	private DuckPersist	duckPersist;
-	
+	private DuckLog duckLog;
 	private DuckSource duckSource;
-	
 	private Map<String,DuckEgg> eggs = new HashMap<>();
 	
 
+	/**
+	 * Provides the controller with the configuration
+	 * @param duckConfiguration The configuration for this duck
+	 * @return This object
+	 */
 	@Override
 	public DuckControl setDuckConfiguration(DuckConfiguration duckConfiguration) {
 		this.duckConfiguration = duckConfiguration;
@@ -26,11 +32,27 @@ public class DuckControlService implements DuckControl {
 	}
 
 	@Override
+	public DuckControl setDuckLog(DuckLog duckLog) {
+		this.duckLog = duckLog;
+		return this;
+	}
+
+	/**
+	 * Provides the controller with the persistence object
+	 * @param duckPersist The service to persist key ranges
+	 * @return This object
+	 */
+	@Override
 	public DuckControl setDuckPersist(DuckPersist duckPersist) {
 		this.duckPersist = duckPersist;
 		return this;
 	}
 
+	/**
+	 * Provides the controller with the source object (where we get more keys)
+	 * @param duckSource The service to retreive key ranges
+	 * @return This object
+	 */
 	@Override
 	public DuckControl setDuckSource(DuckSource duckSource) {
 		this.duckSource = duckSource;
@@ -39,7 +61,7 @@ public class DuckControlService implements DuckControl {
 	
 	/**
 	 * Load the keys from persistent store
-	 * @throws Exception
+	 * @throws Exception Error
 	 */
 	@Override
 	public DuckControl initialize() throws Exception	{
@@ -49,6 +71,11 @@ public class DuckControlService implements DuckControl {
 		return this;
 	}
 
+	/**
+	 * After startup have the Duck preload some known keys to prime the keysource
+	 * Makes the first retrieve move faster
+	 * @param name Name of key set
+	 */
 	@Override
 	public DuckControl preLoad(String name) {
 		duckSource.refresh(name.trim().toLowerCase(), this);
@@ -57,9 +84,9 @@ public class DuckControlService implements DuckControl {
 
 	/**
 	 * Get a single key
-	 * @param name
-	 * @return
-	 * @throws Exception
+	 * @param name Name of key set
+	 * @return Duck Range containing a single key 
+	 * @throws Exception Error
 	 */
 	@Override
 	public DuckRange getOne(String name) throws Exception	{
@@ -67,10 +94,10 @@ public class DuckControlService implements DuckControl {
 	}
 	
 	/**
-	 * Get a single key
-	 * @param name
-	 * @return
-	 * @throws Exception
+	 * Get a range of keys using the default response size
+	 * @param name Name of key set
+	 * @return Duck Range containing a range of keys
+	 * @throws Exception Error
 	 */
 	@Override
 	public DuckRange get(String name) throws Exception	{
@@ -78,24 +105,30 @@ public class DuckControlService implements DuckControl {
 	}
 	
 	/**
-	 * Get a key range
-	 * @param name
-	 * @param maximumSize
-	 * @return
-	 * @throws Exception
+	 * Get a key range up to the default response size
+	 * @param name Name of the key set
+	 * @param maximumSize Maximum number of keys to return
+	 * @return Duck Range containing a range of keys
+	 * @throws Exception Error
 	 */
 	@Override
 	public DuckRange get(String name, int maximumSize) throws Exception	{
+		
+		//	Trim response size to the maximum configured amount
 		if(maximumSize > duckConfiguration.getResponseSize())	{
 			maximumSize = duckConfiguration.getResponseSize();
 		}
 		
+		//	Retrieve this key set.  getRange creates and inserts one if it did not already exist
 		name = name.trim().toLowerCase();
-		int count = duckConfiguration.getRetries();
 		DuckEgg egg = getEgg(name);
 		DuckRange duckRange = getRange(egg, maximumSize);
 		
-		while(duckRange.isEmpty() && count-- > 0)	{
+		//	If the duck range is empty then we need to go to the source to get another range
+		//	This step may be repeated.  It is possible that multiple requests will exhaust the key set
+		//	and require another request
+		int count = duckConfiguration.getRetries();
+		while(duckRange.isEmpty() && count-- >= 0)	{
 			DuckStatus status = duckSource.get(name, this, maximumSize);
 			if(status == DuckStatus.FAILURE || status == DuckStatus.TIMEOUT)	{
 				return new DuckRange(status);
@@ -103,9 +136,13 @@ public class DuckControlService implements DuckControl {
 			duckRange = getRange(egg, maximumSize);
 		}
 		
+		//	If this request lowers the current inventory below the water mark then request a key range
+		//	to be put on deck, so that when the current set is exhausted there is another set ready
 		if(egg.needMore(duckConfiguration.getWatermark()))	{
 			duckSource.refresh(name, this);
 		}
+		
+		//	If all retries are exhausted and we still have an empty set then the request is timed out
 		if(duckRange.isEmpty() && count <= 0)	{
 			duckRange.timeout();
 		}
@@ -114,17 +151,21 @@ public class DuckControlService implements DuckControl {
 	}
 	
 	/**
-	 * Call back from source
-	 * @param name
-	 * @param duckRange
+	 * Call back from source to update the key set
+	 * @param name Name of the key set to be modified
+	 * @param duckRange key set
 	 */
 	@Override
 	public void updateEgg(String name, DuckRange duckRange)	{
+		
+		//	Get the key set information for this name
 		name = name.trim().toLowerCase();
 		DuckEgg egg = null;
 		synchronized(eggs)	{
 			egg = eggs.get(name);
 		}
+		
+		//	Update the in memory key set and persist the key set
 		if(egg != null)	{
 			synchronized(egg)	{
 				egg.addRange(duckRange);
@@ -132,7 +173,7 @@ public class DuckControlService implements DuckControl {
 					duckPersist.save(egg.getData());
 				} 
 				catch (Exception e) {
-					// TODO Auto-generated catch block
+					duckLog.log(e.getMessage(), e);
 				}
 			} 
 		}

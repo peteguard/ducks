@@ -5,6 +5,8 @@ package com.zodoto.util.ducks;
  * Thread safe class that is intended to live within a JVM
  * It doesn't persist the keys, which sacrifices persistence for speed
  * Each restart gets a new set of keys and loses any still in the cache
+ * 
+ * @author Pete Guard
  *
  */
 public class DuckLocal {

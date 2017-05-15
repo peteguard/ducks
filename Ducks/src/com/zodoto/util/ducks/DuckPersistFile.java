@@ -15,6 +15,8 @@ import java.util.stream.Stream;
  * 
  * Saves the current working state to a file.
  * The getAll and save methods are synchronized to prevent file corruption or an invalid read
+ * 
+ * @author Pete Guard
  *
  */
 public class DuckPersistFile implements DuckPersist {
@@ -84,8 +86,8 @@ public class DuckPersistFile implements DuckPersist {
 				.setName(columns[0].toLowerCase())
 				.setNextKey(stringToLong(columns[1]))
 				.setEndKey(stringToLong(columns[2]))
-				.setNextStartKey(stringToLong(columns[3]))
-				.setNextEndKey(stringToLong(columns[4]));
+				.setOnDeckStartKey(stringToLong(columns[3]))
+				.setOnDeckEndKey(stringToLong(columns[4]));
 			
 		reply.add(duckData);
 		contents.put(duckData.getName(), duckData);
@@ -105,9 +107,9 @@ public class DuckPersistFile implements DuckPersist {
 			.append(" ")
 			.append(duckData.getEndKey())
 			.append(" ")
-			.append(duckData.getNextStartKey())
+			.append(duckData.getOnDeckStartKey())
 			.append(" ")
-			.append(duckData.getNextEndKey())
+			.append(duckData.getOnDeckEndKey())
 			.append(System.getProperty("line.separator"))
 			.toString();
 		writer.write(row);
