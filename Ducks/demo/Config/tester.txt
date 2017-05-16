@@ -1,0 +1,11 @@
+identity=tester
+ducktype=local
+responsesize=10
+requestsize=100
+watermark=30
+waitmillis=100
+waitcount=30
+retries=3
+sourceurl=localhost
+sourceport=9758
+logfoldername=Logs

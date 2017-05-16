@@ -1,0 +1,14 @@
+identity=local
+ducktype=relay
+responsesize=100
+requestsize=1000
+watermark=300
+waitmillis=100
+waitcount=30
+retries=3
+sourceurl=localhost
+sourceport=9757
+listenport=9758
+persistfilename=Data/localdata.txt
+logfoldername=Logs
+

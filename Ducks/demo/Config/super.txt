@@ -1,0 +1,7 @@
+identity=global
+ducktype=super
+responsesize=10000
+persistfilename=Data/superdata.txt
+logfoldername=Logs
+listenport=9756
+

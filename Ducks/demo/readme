@@ -1,0 +1,53 @@
+Simple Demo
+
+Run the servers, starting each in order.
+You will need to run each in its own terminal window.
+
+java -jar Jars/Ducks.jar Config/super.txt
+
+java -jar Jars/Ducks.jar Config/regional.txt
+
+java -jar Jars/Ducks.jar Config/local.txt
+
+
+Then run:
+
+
+java -jar Jars/Ducktester.jar Config/tester.txt
+
+
+
+This simulates a global network.  Super being the key source,
+regional being a server for a country, local being the server
+in the data center, and the tester representing a container.
+
+
+The Logs folder will hold logs for each of the servers and the tester
+Tail the logs and follow along
+
+tail -f Logs/
+
+
+The Data file contains the persisted copy of each servers keys.
+Look but don't edit.  
+
+
+At the prompt in the tester enter a key name and hit return
+You should see something like this
+
+> Foo
+Key=1
+
+Ducks has just given you a unique key of 1 for whatever Foo is.
+Nobody else will get that number.
+
+
+Try another, but ask for a range of keys
+
+> Goo 5
+Start=1 Last=5
+
+You have been given keys 1, 2, 3, 4, and 5.  
+
+
+

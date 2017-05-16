@@ -1,0 +1,13 @@
+identity=regional
+ducktype=relay
+responsesize=1000
+requestsize=10000
+watermark=3000
+waitmillis=1000
+waitcount=300
+retries=3
+sourceurl=localhost
+sourceport=9756
+listenport=9757
+persistfilename=Data/regionaldata.txt
+logfoldername=Logs
